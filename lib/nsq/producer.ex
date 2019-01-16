@@ -202,7 +202,7 @@ defmodule NSQ.Producer do
   """
   @spec pub(pid, binary) :: {:ok, binary}
   def pub(sup_pid, data) do
-    {:ok, _resp} = GenServer.call(get(sup_pid), {:pub, data})
+    GenServer.call(get(sup_pid), {:pub, data})
   end
 
 
@@ -211,7 +211,7 @@ defmodule NSQ.Producer do
   """
   @spec pub(pid, binary, binary) :: {:ok, binary}
   def pub(sup_pid, topic, data) do
-    {:ok, _resp} = GenServer.call(get(sup_pid), {:pub, topic, data})
+    GenServer.call(get(sup_pid), {:pub, topic, data})
   end
 
 
@@ -229,7 +229,7 @@ defmodule NSQ.Producer do
   """
   @spec mpub(pid, binary, binary) :: {:ok, binary}
   def mpub(sup_pid, topic, data) do
-    {:ok, _resp} = GenServer.call(get(sup_pid), {:mpub, topic, data})
+    GenServer.call(get(sup_pid), {:mpub, topic, data})
   end
 
 
@@ -252,17 +252,27 @@ defmodule NSQ.Producer do
   # Used to DRY up handle_call({:pub, ...).
   @spec do_pub(binary, binary, pro_state) :: {:reply, {:ok, binary}, pro_state}
   defp do_pub(topic, data, pro_state) do
-    {:ok, resp} = random_connection_pid(pro_state)
+    res = random_connection_pid(pro_state)
       |> NSQ.Connection.cmd({:pub, topic, data})
-    {:reply, {:ok, resp}, pro_state}
+    case res do
+      {:ok, resp} -> 
+        {:reply, {:ok, resp}, pro_state}
+      {:error, resp} ->
+        {:reply, {:error, resp}, pro_state}
+    end
   end
 
 
   # Used to DRY up handle_call({:mpub, ...).
   @spec do_mpub(binary, binary, pro_state) :: {:reply, {:ok, binary}, pro_state}
   defp do_mpub(topic, data, pro_state) do
-    {:ok, resp} = random_connection_pid(pro_state)
+    res = random_connection_pid(pro_state)
       |> NSQ.Connection.cmd({:mpub, topic, data})
-    {:reply, {:ok, resp}, pro_state}
+    case res do
+      {:ok, resp} -> 
+        {:reply, {:ok, resp}, pro_state}
+      {:error, resp} ->
+        {:reply, {:error, resp}, pro_state}
+    end
   end
 end
