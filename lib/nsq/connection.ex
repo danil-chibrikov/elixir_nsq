@@ -209,13 +209,17 @@ defmodule NSQ.Connection do
   """
   @spec cmd(pid, tuple, integer) :: {:ok, binary} | {:error, String.t}
   def cmd(conn_pid, cmd, timeout \\ 5000) do
-    {:ok, ref} = GenServer.call(conn_pid, {:cmd, cmd, :reply})
-    receive do
-      {^ref, data} ->
-        {:ok, data}
-    after
-      timeout ->
-        {:error, "Command #{cmd} took longer than timeout #{timeout}"}
+    case GenServer.call(conn_pid, {:cmd, cmd, :reply}) do
+      {:ok, ref} ->
+        receive do
+          {^ref, data} ->
+            {:ok, data}
+        after
+          timeout ->
+            {:error, "Command #{cmd} took longer than timeout #{timeout}"}
+        end
+      {:queued, :no_socket} -> 
+        {:error, "Connect failed. Invalid host or port"}
     end
   end
 
